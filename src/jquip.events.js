@@ -1,5 +1,5 @@
 $['plug']("events", function($){
-  var doc = document, handlers = {}, _jquid = 1;
+   var doc = document, handlers = {}, _jquid = 1, _ieBindHandlers = {};
   function jquid(el){
     return el._jquid || (el._jquid = _jquid++);
   }
@@ -7,19 +7,18 @@ $['plug']("events", function($){
     if (o.addEventListener)
       o.addEventListener(type, fn, false);
     else {
-      o['e' + type + fn] = fn;
-      o[type + fn] = function(){
-        o['e' + type + fn](window.event);
+      _ieBindHandlers[type + fn] = function(){
+      fn(window.event);
       };
-      o.attachEvent('on' + type, o[type + fn]);
+      o.attachEvent('on' + type, _ieBindHandlers[type + fn]);
     }
   } $['bind'] = bind;
   function unbind(o, type, fn){
     if (o.removeEventListener)
       o.removeEventListener(type, fn, false);
     else {
-      o.detachEvent('on' + type, o[type + fn]);
-      o[type + fn] = null;
+      o.detachEvent('on' + type, _ieBindHandlers[type + fn]);
+      _ieBindHandlers[type + fn] = null;
     }
   } $['unbind'] = unbind;
   function parseEvt(evt){
