@@ -107,7 +107,7 @@ window['$'] = window['jquip'] = (function(){
       var value = args[0], parent, frag, first, l, i;
       if (value){
         if (this[0]) {
-          if (!(frag = value.nodeType === 3 && value)){
+          if (!(frag = (value.nodeType === 1 || value.nodeType === 3) && value)){
             parent = value && value.parentNode;
             frag = parent && parent.nodeType === 11 && parent.childNodes.length === this.length
               ? parent
@@ -166,7 +166,8 @@ window['$'] = window['jquip'] = (function(){
   p['each'] = function(fn){
       if (!isF(fn)) return this;
       for(var i = 0, l = this.length; i < l; i++)
-        fn.call(this[i], i, this[i]);
+        if ( fn.call(this[i], i, this[i]) === false )
+          break;
       return this;
   };
   p['attr'] = function(name, val){
@@ -342,6 +343,8 @@ window['$'] = window['jquip'] = (function(){
   };
   p['html'] = function(setHtml){
     if (!isDefined(setHtml)) return (this[0] && this[0].innerHTML) || "";
+    if (!isS(setHtml))
+      return this.empty().append(setHtml);
     return this['each'](function(){
       this.innerHTML = setHtml;
     });
@@ -1696,7 +1699,7 @@ window['$'] = window['jquip'] = (function(){
   if (!$['init']) $(document)['ready']($['onload']);
 });
 ;$['plug']("events", function($){
-  var doc = document, handlers = {}, _jquid = 1;
+   var doc = document, handlers = {}, _jquid = 1, _ieBindHandlers = {};
   function jquid(el){
     return el._jquid || (el._jquid = _jquid++);
   }
@@ -1704,19 +1707,18 @@ window['$'] = window['jquip'] = (function(){
     if (o.addEventListener)
       o.addEventListener(type, fn, false);
     else {
-      o['e' + type + fn] = fn;
-      o[type + fn] = function(){
-        o['e' + type + fn](window.event);
+      _ieBindHandlers[type + fn] = function(){
+      fn(window.event);
       };
-      o.attachEvent('on' + type, o[type + fn]);
+      o.attachEvent('on' + type, _ieBindHandlers[type + fn]);
     }
   } $['bind'] = bind;
   function unbind(o, type, fn){
     if (o.removeEventListener)
       o.removeEventListener(type, fn, false);
     else {
-      o.detachEvent('on' + type, o[type + fn]);
-      o[type + fn] = null;
+      o.detachEvent('on' + type, _ieBindHandlers[type + fn]);
+      _ieBindHandlers[type + fn] = null;
     }
   } $['unbind'] = unbind;
   function parseEvt(evt){
